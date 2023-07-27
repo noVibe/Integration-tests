@@ -4,17 +4,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skypro.simplebanking.dto.BankingUserDetails;
 import com.skypro.simplebanking.dto.CreateUserRequest;
 import com.skypro.simplebanking.repository.UserRepository;
+import com.skypro.simplebanking.testData.TestData;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,20 +32,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserControllerTest {
     @Autowired
     MockMvc mockMvc;
+
     @Autowired
-    ObjectMapper objectMapper;
-    @Autowired
-    UserRepository userRepository;
+    TestData testData;
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    void createUser() throws Exception {
-        String username = "jack";
-        CreateUserRequest newUser = new CreateUserRequest();
-        newUser.setUsername(username);
-        newUser.setPassword("blob");
+    void createUser(@Value("${app.security.admin-token}") String token) throws Exception {
+        String username = "john";
+        String requestBody = new JSONObject()
+                .put("username", username)
+                .put("password", "xxx")
+                .toString();
         mockMvc.perform(post("/user/")
-                        .content(objectMapper.writeValueAsString(newUser))
+                        .header("X-SECURITY-ADMIN-KEY", token)
+                        .content(requestBody)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
@@ -57,12 +62,15 @@ class UserControllerTest {
     }
 
     @Test
+        //If user name and password are changed, it still works. Any a proper way to fix this?
+        //Using Auth doesn't help
     void getMyProfile() throws Exception {
         mockMvc.perform(get("/user/me")
-                        .with(SecurityMockMvcRequestPostProcessors.user(
-                                new BankingUserDetails(1, "bob", "test", false))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("bob"))
-                .andExpect(jsonPath("$.id").value(1));
+                        .with(user(testData.USER)))
+                .andExpectAll(
+                        status().isOk(),
+                        jsonPath("$.username").value("bob"),
+                        jsonPath("$.id").value(1));
     }
 }
+
