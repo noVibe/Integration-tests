@@ -1,8 +1,10 @@
 package com.skypro.simplebanking.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skypro.simplebanking.dto.BankingUserDetails;
 import com.skypro.simplebanking.dto.CreateUserRequest;
+import com.skypro.simplebanking.entity.User;
 import com.skypro.simplebanking.repository.UserRepository;
 import com.skypro.simplebanking.testData.TestData;
 import org.json.JSONObject;
@@ -19,16 +21,21 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
-@Sql("/sql/fill.sql")
+//@Transactional
+//@Sql("/sql/fill.sql")
 class UserControllerTest {
     @Autowired
     MockMvc mockMvc;
@@ -36,7 +43,11 @@ class UserControllerTest {
     @Autowired
     TestData testData;
 
+    @Autowired
+    ObjectMapper objectMapper;
+
     @Test
+    @Transactional
     void createUser(@Value("${app.security.admin-token}") String token) throws Exception {
         String username = "john";
         String requestBody = new JSONObject()
@@ -65,12 +76,13 @@ class UserControllerTest {
         //If user name and password are changed, it still works. Any a proper way to fix this?
         //Using Auth doesn't help
     void getMyProfile() throws Exception {
+        BankingUserDetails authUser = testData.randomAuthUser();
         mockMvc.perform(get("/user/me")
-                        .with(user(testData.USER)))
+                        .with(user(authUser)))
                 .andExpectAll(
                         status().isOk(),
-                        jsonPath("$.username").value("bob"),
-                        jsonPath("$.id").value(1));
+                        jsonPath("$.username").value(authUser.getUsername()),
+                        jsonPath("$.id").value(authUser.getId()));
     }
 }
 

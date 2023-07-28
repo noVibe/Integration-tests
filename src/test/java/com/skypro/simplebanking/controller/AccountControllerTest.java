@@ -3,9 +3,12 @@ package com.skypro.simplebanking.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skypro.simplebanking.dto.BankingUserDetails;
 import com.skypro.simplebanking.dto.CreateUserRequest;
+import com.skypro.simplebanking.entity.Account;
 import com.skypro.simplebanking.entity.AccountCurrency;
+import com.skypro.simplebanking.entity.User;
 import com.skypro.simplebanking.repository.UserRepository;
 import com.skypro.simplebanking.testData.TestData;
+import com.skypro.simplebanking.test_services.TestSupport;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,27 +30,34 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
-@Sql("/sql/fill.sql")
 class AccountControllerTest {
     @Autowired
     MockMvc mockMvc;
     @Autowired
     TestData testData;
+    @Autowired
+    TestSupport support;
 
     @Test
     @WithMockUser
     void getUserAccount() throws Exception {
+        BankingUserDetails authUser = testData.randomAuthUser();
+        User user = testData.user(authUser);
         for (int id = 1; id <= AccountCurrency.values().length; id++) {
-            mockMvc.perform(get("/account/{id}", id)
-                            .with(user(testData.USER)))
+            AccountCurrency currency = AccountCurrency.values()[id - 1];
+            long accountId = support.getAccountIdByCurrency(user, currency);
+            mockMvc.perform(get("/account/{id}", accountId)
+                            .with(user(authUser)))
                     .andExpectAll(
                             status().isOk(),
                             jsonPath("$").isMap(),
                             jsonPath("$.length()").value(AccountCurrency.values().length),
-                            jsonPath("$.id").value(id),
-                            jsonPath("$.currency").value(AccountCurrency.values()[id - 1].toString()),
-                            jsonPath("$.amount").value(1)
+                            jsonPath("$.id").value(accountId),
+                            jsonPath("$.currency").value(currency.name()),
+                            jsonPath("$.amount").value(user.getAccounts().stream()
+                                    .filter(a -> a.getAccountCurrency().equals(currency))
+                                    .mapToLong(Account::getAmount)
+                                    .findAny().orElseThrow())
                     );
         }
     }
@@ -55,36 +65,56 @@ class AccountControllerTest {
     @Test
     @Transactional
     void depositToAccount() throws Exception {
+        BankingUserDetails authUser = testData.randomAuthUser();
+        User user = testData.user(authUser);
+        int deposit = 100;
         for (int id = 1; id <= AccountCurrency.values().length; id++) {
-            JSONObject body = new JSONObject().put("amount", 99);
-            mockMvc.perform(post("/account/deposit/{id}", id)
-                            .with(user(testData.USER))
+            AccountCurrency currency = AccountCurrency.values()[id - 1];
+            long accountId = support.getAccountIdByCurrency(user, currency);
+            JSONObject body = new JSONObject().put("amount", deposit);
+            mockMvc.perform(post("/account/deposit/{id}", accountId)
+                            .with(user(authUser))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body.toString()))
                     .andExpectAll(
                             status().isOk(),
-                            jsonPath("$.id").value(id),
-                            jsonPath("$.amount").value(100),
-                            jsonPath("$.currency").value(AccountCurrency.values()[id - 1].toString())
+                            jsonPath("$.id").value(accountId),
+                            jsonPath("$.currency").value(currency.name()),
+                            jsonPath("$.amount").value(user.getAccounts().stream()
+                                    .filter(a -> a.getAccountCurrency().equals(currency))
+                                    .mapToLong(Account::getAmount)
+                                    .map(m -> m + deposit)
+                                    .findFirst().orElseThrow()
+                            )
+
                     );
         }
     }
 
     @Test
     void withdrawFromAccount() throws Exception {
+        BankingUserDetails authUser = testData.randomAuthUser();
+        User user = testData.user(authUser);
+        int withdraw = 1;
         for (int id = 1; id <= AccountCurrency.values().length; id++) {
-            String requestBody = new JSONObject()
-                    .put("amount", 1)
-                    .toString();
-            mockMvc.perform(post("/account/withdraw/{id}", id)
-                            .with(user(testData.USER))
+            JSONObject body = new JSONObject().put("amount", withdraw);
+            AccountCurrency currency = AccountCurrency.values()[id - 1];
+            long accountId = support.getAccountIdByCurrency(user, currency);
+            mockMvc.perform(post("/account/withdraw/{id}", accountId)
+                            .with(user(authUser))
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(requestBody))
+                            .content(body.toString()))
                     .andExpectAll(
                             status().isOk(),
-                            jsonPath("$.id").value(id),
-                            jsonPath("$.amount").value(0),
-                            jsonPath("$.currency").value(AccountCurrency.values()[id - 1].toString())
+                            jsonPath("$.id").value(accountId),
+                            jsonPath("$.currency").value(currency.name()),
+                            jsonPath("$.amount").value(user.getAccounts().stream()
+                                    .filter(a -> a.getAccountCurrency().equals(currency))
+                                    .mapToLong(Account::getAmount)
+                                    .map(m -> m - withdraw)
+                                    .findFirst().orElseThrow()
+                            )
+
                     );
         }
     }
