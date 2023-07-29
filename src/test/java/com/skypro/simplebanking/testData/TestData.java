@@ -67,6 +67,7 @@ public class TestData {
 
     public Map<String, String> getUsernamePasswordMap(int size) {
         Map<String, String> usernamePassword = new HashMap<>();
+        usernamePassword.put("username", "password");
         String username;
         while (usernamePassword.size() < size) {
             username = faker.name().username();
@@ -87,6 +88,14 @@ public class TestData {
                 .map(userRepository::save)
                 .map(this::fillUserWithAccounts)
                 .toList();
+    }
+    public BankingUserDetails authUserWithInvalidPassword() {
+        BankingUserDetails valid = randomAuthUser();
+        return new BankingUserDetails(
+                valid.getId(),
+                valid.getUsername(),
+                USERNAME_PASSWORD.get(valid.getUsername()) + "x",
+                false);
     }
 
 }

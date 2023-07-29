@@ -13,4 +13,9 @@ public class TestSupport {
                 .mapToLong(Account::getId)
                 .findAny().orElseThrow();
     }
+    public Account getAccountById(User user, long id) {
+        return user.getAccounts().stream()
+                .filter(a -> a.getId() == id)
+                .findAny().orElseThrow();
+    }
 }

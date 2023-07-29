@@ -1,30 +1,24 @@
 package com.skypro.simplebanking.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skypro.simplebanking.dto.BankingUserDetails;
-import com.skypro.simplebanking.dto.CreateUserRequest;
 import com.skypro.simplebanking.entity.Account;
 import com.skypro.simplebanking.entity.AccountCurrency;
 import com.skypro.simplebanking.entity.User;
-import com.skypro.simplebanking.repository.UserRepository;
 import com.skypro.simplebanking.testData.TestData;
 import com.skypro.simplebanking.test_services.TestSupport;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -92,6 +86,7 @@ class AccountControllerTest {
     }
 
     @Test
+    @Transactional
     void withdrawFromAccount() throws Exception {
         BankingUserDetails authUser = testData.randomAuthUser();
         User user = testData.user(authUser);
@@ -118,4 +113,5 @@ class AccountControllerTest {
                     );
         }
     }
+
 }
