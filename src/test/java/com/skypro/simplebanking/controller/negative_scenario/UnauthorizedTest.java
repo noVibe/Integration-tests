@@ -28,4 +28,5 @@ public class UnauthorizedTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
+
 }
