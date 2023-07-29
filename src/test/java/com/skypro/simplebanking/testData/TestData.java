@@ -47,7 +47,7 @@ public class TestData {
             Account account = new Account();
             account.setUser(user);
             account.setAccountCurrency(currency);
-            account.setAmount(faker.random().nextLong(Long.MAX_VALUE - 1) + 1);
+            account.setAmount(faker.random().nextLong(Long.MAX_VALUE - 2) + 1);
             user.getAccounts().add(account);
             accountRepository.save(account);
         }

@@ -42,7 +42,7 @@ public class NegativeControllerTests {
             AccountCurrency currency = AccountCurrency.values()[id - 1];
             long accountId = support.getAccountIdByCurrency(user, currency);
             Account account = support.getAccountById(user, accountId);
-            long withdraw = account.getAmount() * 2;
+            long withdraw = account.getAmount() + 1;
             String expected = "Cannot withdraw " + withdraw + " " + currency.name();
             JSONObject body = new JSONObject().put("amount", withdraw);
             actual = mockMvc.perform(post("/account/withdraw/{id}", accountId)
@@ -64,9 +64,9 @@ public class NegativeControllerTests {
                             .content(body.toString()))
                     .andExpect(status().isBadRequest())
                     .andReturn().getResponse().getContentAsString();
+
             Assertions.assertThat(actual.contains(expected)).isTrue();
         }
-
     }
 
     @Test
