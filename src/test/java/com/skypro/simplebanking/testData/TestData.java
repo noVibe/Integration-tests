@@ -68,10 +68,8 @@ public class TestData {
     public Map<String, String> getUsernamePasswordMap(int size) {
         Map<String, String> usernamePassword = new HashMap<>();
         usernamePassword.put("username", "password");
-        String username;
         while (usernamePassword.size() < size) {
-            username = faker.name().username();
-            usernamePassword.put(username, faker.internet().password());
+            usernamePassword.put(faker.name().username(), faker.internet().password());
         }
         return Collections.unmodifiableMap(usernamePassword);
     }
